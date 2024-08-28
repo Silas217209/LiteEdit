@@ -1,0 +1,13 @@
+[submodule "vendor/tree-sitter"]
+	path = vendor/tree-sitter
+	url = https://github.com/tree-sitter/tree-sitter.git
+[submodule "vendor/tree-sitter-c"]
+	path = vendor/tree-sitter-c
+	url = https://github.com/tree-sitter/tree-sitter-c
+[submodule "vendor/PDCurses"]
+	path = vendor/PDCurses
+	url = https://github.com/wmcbrine/PDCurses.git
+	branch = 3.9
+[submodule "vendor/termbox2"]
+	path = vendor/termbox2
+	url = https://github.com/termbox/termbox2.git

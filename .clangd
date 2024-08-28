@@ -1,0 +1,3 @@
+Diagnostics:
+  ClangTidy:
+    Remove: [hicpp-signed-bitwise]

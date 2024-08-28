@@ -1,0 +1,185 @@
+.
+├── CMakeLists.txt
+├── CMakePresets.json
+├── compile_commands.json -> build/debug/compile_commands.json
+├── out.txt
+├── src
+│   ├── main.c
+│   └── main.c.bak
+├── theme.json
+└── vendor
+    ├── PDCurses
+    │   ├── common
+    │   │   ├── acs437.h
+    │   │   ├── acsgr.h
+    │   │   ├── acsuni.h
+    │   │   ├── borland.lrf
+    │   │   ├── font437.h
+    │   │   ├── icon32.xpm
+    │   │   ├── icon64.xpm
+    │   │   ├── iconbmp.h
+    │   │   ├── libobjs.mif
+    │   │   ├── pdcurses.rc
+    │   │   ├── README.md
+    │   │   └── watcom.mif
+    │   ├── curses.h
+    │   ├── curspriv.h
+    │   ├── demos
+    │   │   ├── firework.c
+    │   │   ├── nctests.mif
+    │   │   ├── ncurses_cfg.h
+    │   │   ├── ozdemo.c
+    │   │   ├── ptest.c
+    │   │   ├── rain.c
+    │   │   ├── README.md
+    │   │   ├── testcurs.c
+    │   │   ├── tui.c
+    │   │   ├── tuidemo.c
+    │   │   ├── tui.h
+    │   │   ├── UTF-8-demo.txt
+    │   │   ├── worm.c
+    │   │   └── xmas.c
+    │   ├── docs
+    │   │   ├── CNAME
+    │   │   ├── HISTORY.md
+    │   │   ├── IMPLEMNT.md
+    │   │   ├── index.html
+    │   │   ├── manext.awk
+    │   │   ├── MANUAL.md
+    │   │   ├── mkman.sh
+    │   │   ├── README.md
+    │   │   └── USERS.md
+    │   ├── dos
+    │   │   ├── Makefile
+    │   │   ├── Makefile.bcc
+    │   │   ├── Makefile.wcc
+    │   │   ├── pdcclip.c
+    │   │   ├── pdcdisp.c
+    │   │   ├── pdcdos.h
+    │   │   ├── pdcgetsc.c
+    │   │   ├── pdckbd.c
+    │   │   ├── pdcscrn.c
+    │   │   ├── pdcsetsc.c
+    │   │   ├── pdcutil.c
+    │   │   └── README.md
+    │   ├── os2
+    │   │   ├── Makefile
+    │   │   ├── Makefile.bcc
+    │   │   ├── Makefile.wcc
+    │   │   ├── pdcclip.c
+    │   │   ├── pdcdisp.c
+    │   │   ├── pdcgetsc.c
+    │   │   ├── pdckbd.c
+    │   │   ├── pdcos2.h
+    │   │   ├── pdcscrn.c
+    │   │   ├── pdcsetsc.c
+    │   │   ├── pdcutil.c
+    │   │   └── README.md
+    │   ├── panel.h
+    │   ├── pdcurses
+    │   │   ├── addch.c
+    │   │   ├── addchstr.c
+    │   │   ├── addstr.c
+    │   │   ├── attr.c
+    │   │   ├── beep.c
+    │   │   ├── bkgd.c
+    │   │   ├── border.c
+    │   │   ├── clear.c
+    │   │   ├── color.c
+    │   │   ├── debug.c
+    │   │   ├── delch.c
+    │   │   ├── deleteln.c
+    │   │   ├── getch.c
+    │   │   ├── getstr.c
+    │   │   ├── getyx.c
+    │   │   ├── inch.c
+    │   │   ├── inchstr.c
+    │   │   ├── initscr.c
+    │   │   ├── inopts.c
+    │   │   ├── insch.c
+    │   │   ├── insstr.c
+    │   │   ├── instr.c
+    │   │   ├── kernel.c
+    │   │   ├── keyname.c
+    │   │   ├── mouse.c
+    │   │   ├── move.c
+    │   │   ├── outopts.c
+    │   │   ├── overlay.c
+    │   │   ├── pad.c
+    │   │   ├── panel.c
+    │   │   ├── printw.c
+    │   │   ├── README.md
+    │   │   ├── refresh.c
+    │   │   ├── scanw.c
+    │   │   ├── scr_dump.c
+    │   │   ├── scroll.c
+    │   │   ├── slk.c
+    │   │   ├── termattr.c
+    │   │   ├── touch.c
+    │   │   ├── util.c
+    │   │   └── window.c
+    │   ├── README.md
+    │   ├── sdl1
+    │   │   ├── Makefile
+    │   │   ├── pdcclip.c
+    │   │   ├── pdcdisp.c
+    │   │   ├── pdcgetsc.c
+    │   │   ├── pdckbd.c
+    │   │   ├── pdcscrn.c
+    │   │   ├── pdcsdl.h
+    │   │   ├── pdcsetsc.c
+    │   │   ├── pdcutil.c
+    │   │   ├── README.md
+    │   │   └── sdltest.c
+    │   ├── sdl2
+    │   │   ├── Makefile
+    │   │   ├── Makefile.vc
+    │   │   ├── pdcclip.c
+    │   │   ├── pdcdisp.c
+    │   │   ├── pdcgetsc.c
+    │   │   ├── pdckbd.c
+    │   │   ├── pdcscrn.c
+    │   │   ├── pdcsdl.h
+    │   │   ├── pdcsetsc.c
+    │   │   ├── pdcutil.c
+    │   │   ├── README.md
+    │   │   ├── sdltest.c
+    │   │   └── versions.mif
+    │   ├── wincon
+    │   │   ├── Makefile
+    │   │   ├── Makefile.bcc
+    │   │   ├── Makefile.vc
+    │   │   ├── Makefile.wcc
+    │   │   ├── pdcclip.c
+    │   │   ├── pdcdisp.c
+    │   │   ├── pdcgetsc.c
+    │   │   ├── pdckbd.c
+    │   │   ├── pdcscrn.c
+    │   │   ├── pdcsetsc.c
+    │   │   ├── pdcutil.c
+    │   │   ├── pdcwin.h
+    │   │   └── README.md
+    │   └── x11
+    │       ├── aclocal.m4
+    │       ├── config.guess
+    │       ├── config.h.in
+    │       ├── config.sub
+    │       ├── configure
+    │       ├── configure.ac
+    │       ├── install-sh
+    │       ├── Makefile.in
+    │       ├── pdcclip.c
+    │       ├── pdcdisp.c
+    │       ├── pdcgetsc.c
+    │       ├── pdckbd.c
+    │       ├── pdcscrn.c
+    │       ├── pdcsetsc.c
+    │       ├── pdcutil.c
+    │       ├── pdcx11.h
+    │       ├── README.md
+    │       ├── sb.c
+    │       ├── scrlbox.c
+    │       ├── scrlbox.h
+    │       └── xcurses-config.in
+    ├── tree-sitter
+    └── tree-sitter-c

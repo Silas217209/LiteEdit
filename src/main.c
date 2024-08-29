@@ -1,17 +1,13 @@
-#define TB_IMPL
-#include "termbox2.h"
-
 #include <locale.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include "terminal.h"
 
-#define clamp(x, min, max) (x)<(min) ? (min) : (x)>(max) ? (max) : (x)
-#define ctrl(x) ((x) & 0x1f)
-#define color(x) (x) * 1000 / 255
-
+/*
 enum color { FG = 1, BG };
 
 typedef enum {
@@ -41,11 +37,11 @@ void die(const char *s) {
     exit(1);
 }
 
-void disableRawMode() { tb_shutdown(); }
+void disableRawMode() { t_end(); }
 
 void enableRawMode() {
     setlocale(LC_ALL, "");
-    if (tb_init() != 0)
+    if (t_init() != 0)
         die("tb_init");
     atexit(disableRawMode);
 }
@@ -225,5 +221,52 @@ int main(int argc, char *argv[]) {
         editorRefreshScreen();
         editorReadEvent();
     }
+    return 0;
+}
+*/
+
+void enable_raw_mode() {
+    struct termios term;
+    tcgetattr(STDIN_FILENO, &term);
+
+    term.c_lflag &= ~(ICANON | ECHO); // Disable canonical mode and echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+void disable_raw_mode() {
+    struct termios term;
+    tcgetattr(STDIN_FILENO, &term);
+
+    term.c_lflag |= (ICANON | ECHO); // Re-enable canonical mode and echo
+    tcsetattr(STDIN_FILENO, TCSANOW, &term);
+}
+
+int main() {
+    int c;
+
+    // Enable raw mode
+    enable_raw_mode();
+
+    printf("Press any key to see its keycode (Press Ctrl+C to exit)\n");
+
+    while (1) {
+        char buf[32];
+        int index = 0;
+        while (index < sizeof(buf) && read(STDIN_FILENO, &buf[index], 1) != -1) {
+            printf("%d", buf[index]);
+            index++;
+        }
+
+        printf("\n");
+
+
+        if (c == 3) { // Exit on Ctrl+C
+            break;
+        }
+    }
+
+    // Restore terminal settings
+    disable_raw_mode();
+
     return 0;
 }

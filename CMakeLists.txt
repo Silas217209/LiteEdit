@@ -7,7 +7,7 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Include directories
-include_directories(${CMAKE_SOURCE_DIR}/vendor/termbox2)
+include_directories(${CMAKE_SOURCE_DIR}/include)
 include_directories(${CMAKE_SOURCE_DIR}/vendor/tree-sitter/lib/src)
 include_directories(${CMAKE_SOURCE_DIR}/vendor/tree-sitter/lib/include)
 

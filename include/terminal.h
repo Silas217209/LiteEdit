@@ -8,13 +8,6 @@
 #include <unistd.h>
 #include <wchar.h>
 
-#define CTRL(key) ((key) & 0x1F)
-#define SHIFT(key) (0x10 | (key))
-#define ALT(key) (0x20 | (key))
-#define CTRL(key) (0x40 | (key))
-#define META(key) (0x80 | (key))
-
-
 #define BOLD 0b000001
 #define ITALIC 0b000010
 #define UNDERLINE 0b000100
@@ -22,34 +15,35 @@
 #define INVERSE 0b010000
 #define STRIKETHROUGH 0b100000
 
-struct t_cell {
+struct Cell {
     wchar_t ch;
     int fg;
     int bg;
     int attr;
 };
 
-struct t_cell_buffer {
+struct CellBuffer {
     int width;
     int height;
-    struct t_cell *cells;
+    struct Cell *cells;
 };
 
-struct t_global {
+struct Global {
     struct termios orig_termios;
-    struct t_cell_buffer buf;
+    struct CellBuffer buf;
 };
 
-struct t_global G;
+struct Global G;
 
 // define functions
-int t_end();
-int t_init();
-int t_get_cursor_pos(int *x, int *y);
-int t_move_cursor(int x, int y);
-int t_get_term_size(int *cols, int *rows);
-int init_cell_buffer(struct t_cell_buffer *buffer, int width, int height);
-void free_cell_buffer(struct t_cell_buffer *buffer);
+int terminal_end();
+int terminal_init();
+int terminal_get_cursor_pos(int *x, int *y);
+int terminal_move_cursor(int x, int y);
+int terminal_get_size(int *cols, int *rows);
+int cell_buffer_init(struct CellBuffer *buffer, int width, int height);
+void cell_buffer_free(struct CellBuffer *buffer);
+int cell_set(int x, int y, struct Cell cell);
 
 #include <errno.h>
 #include <stdio.h>
@@ -61,7 +55,7 @@ void free_cell_buffer(struct t_cell_buffer *buffer);
 #include <wchar.h>
 
 // implement functions
-int t_end() {
+int terminal_end() {
     // leave alternate screen
     if (write(STDOUT_FILENO, "\e[?1049l", 8) != 8) {
         errno = EIO;
@@ -71,12 +65,12 @@ int t_end() {
         errno = EIO;
         return -1;
     }
-    free_cell_buffer(&G.buf);
+    cell_buffer_free(&G.buf);
 
     return 0;
 }
 
-int t_init() {
+int terminal_init() {
     if (tcgetattr(STDOUT_FILENO, &G.orig_termios) == -1) {
         errno = EIO;
         return -1;
@@ -95,10 +89,16 @@ int t_init() {
     t.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
     t.c_cflag &= ~(CSIZE | PARENB);
     t.c_cflag |= CS8;
+    t.c_cc[VMIN] = 1;
+    t.c_cc[VTIME] = 1;
+
+    if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &t) == -1) {
+        return -1;
+    };
 
     // init buffer
-    t_get_term_size(&G.buf.width, &G.buf.height);
-    G.buf.cells = malloc((G.buf.width * G.buf.height) * sizeof(struct t_cell));
+    terminal_get_size(&G.buf.width, &G.buf.height);
+    G.buf.cells = malloc((G.buf.width * G.buf.height) * sizeof(struct Cell));
     if (!G.buf.cells) {
         errno = ENOMEM;
         return -1;
@@ -107,7 +107,7 @@ int t_init() {
     return 0;
 }
 
-int t_get_cursor_pos(int *x, int *y) {
+int terminal_get_cursor_pos(int *x, int *y) {
     char buf[32];
     uint i = 0;
 
@@ -139,7 +139,7 @@ int t_get_cursor_pos(int *x, int *y) {
     return 0;
 }
 
-int t_move_cursor(int x, int y) {
+int terminal_move_cursor(int x, int y) {
     char b[12];
     int len_b = sprintf(b, "\e[%d;%dH", x, y);
 
@@ -151,7 +151,7 @@ int t_move_cursor(int x, int y) {
     return 0;
 }
 
-int t_get_term_size(int *cols, int *rows) {
+int terminal_get_size(int *cols, int *rows) {
     struct winsize ws;
     if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == -1 || ws.ws_col == 0) {
         errno = EIO;
@@ -164,11 +164,11 @@ int t_get_term_size(int *cols, int *rows) {
     return 0;
 }
 
-int init_cell_buffer(struct t_cell_buffer *buffer, int width, int height) {
+int cell_buffer_init(struct CellBuffer *buffer, int width, int height) {
     buffer->width = width;
     buffer->height = height;
 
-    buffer->cells = malloc(width * height * sizeof(struct t_cell));
+    buffer->cells = malloc(width * height * sizeof(struct Cell));
     if (!buffer->cells) {
         errno = ENOMEM;
         return -1;
@@ -184,7 +184,7 @@ int init_cell_buffer(struct t_cell_buffer *buffer, int width, int height) {
     return 0;
 }
 
-void free_cell_buffer(struct t_cell_buffer *buffer) {
+void cell_buffer_free(struct CellBuffer *buffer) {
     if (buffer->cells) {
         free(buffer->cells);
         buffer->cells = NULL;
@@ -194,7 +194,7 @@ void free_cell_buffer(struct t_cell_buffer *buffer) {
     buffer->height = 0;
 }
 
-int refresh() {
+int terminal_refresh() {
     int curr_fg = 0xFFFFFF;
     int curr_bg = 0x000000;
     int attr = 0b000000;
@@ -217,7 +217,7 @@ int refresh() {
         int row = index / G.buf.width;
         int col = index % G.buf.height;
 
-        struct t_cell cell = G.buf.cells[index];
+        struct Cell cell = G.buf.cells[index];
 
         if (row != curr_row) {
             row = curr_row;
@@ -327,7 +327,7 @@ int refresh() {
     return 0;
 }
 
-int set_cell(int x, int y, struct t_cell cell) {
+int cell_set(int x, int y, struct Cell cell) {
     if (x > G.buf.width || x < 0) {
         errno = ERANGE;
         return -1;
@@ -343,65 +343,10 @@ int set_cell(int x, int y, struct t_cell cell) {
     return 0;
 }
 
-
-int get_keypress() {
-    int c;
-    if (read(STDIN_FILENO, &c, 1) == -1) {
-        errno = EIO;
-        return -1;
+int terminal_read_input() {
+    char ch;
+    if (read(STDIN_FILENO, &ch, 1) == 1) {
+        return ch;
     }
-
-    if (c == '\e') { // If the first character is an escape character
-        int buf[32];
-        int index = 0;
-
-        // Read the next character
-        if (read(STDIN_FILENO, &buf[index], 1) == -1) {
-            return '\e'; // If there's nothing else, return the escape character itself
-        }
-
-        if (buf[0] == '\e') {
-            return '\e'; // Handle case where two escape characters are read in sequence
-        }
-
-        // If the character after ESC is not '[', it's an Alt-keypress
-        if (buf[0] != '[') {
-            return ALT(buf[0]); // Use the ALT macro to encode the Alt+keypress
-        }
-
-        // Start reading the rest of the sequence
-        index++;
-        while (index < sizeof(buf)) {
-            if (read(STDIN_FILENO, &buf[index], 1) == -1) {
-                if (index == 1) {
-                    return ALT('[');
-                }
-                return -1; // Return an error if reading fails
-            }
-
-            // Check if we've hit the end of the sequence
-            if (buf[index] >= 'A' && buf[index] <= 'Z') {
-                break; // For sequences like <esc>[A (arrow keys, etc.)
-            }
-
-            if (buf[index] == '~') {
-                break; // For sequences like <esc>[3~ (Delete key, etc.)
-            }
-
-            index++;
-        }
-
-        // Now we have a complete sequence in buf
-        if (buf[index] == '~') {
-            // Handle VT sequences with ~ at the end
-            int keycode = buf[1] - '0'; // Assuming simple single-digit keycodes for simplicity
-            return keycode; // This would return something like 3 for <esc>[3~ (Delete)
-        } else {
-            // Handle xterm sequences (e.g., arrow keys)
-            int keycode = buf[index]; // The terminating character (e.g., 'A' for Up)
-            return keycode; // This would return something like 'A' for <esc>[A (Up arrow)
-        }
-    }
-
-    return c; // If it's a regular character, return it as-is
+    return -1;
 }

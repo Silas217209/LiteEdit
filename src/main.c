@@ -1,67 +1,39 @@
-#define TB_IMPL
-#define TB_OPT_ATTR_W 64
-
-#include "termbox2.h"
-
 #include <locale.h>
-#include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <tree_sitter/api.h>
-#include <unistd.h>
-#include <wchar.h>
+#include "terminal.h"
+#include "tree_sitter/api.h"
 
 #define clamp(x, min, max) (x)<(min) ? (min) : (x)>(max) ? (max) : (x)
-
 #define ctrl(k) ((k) & 0x1f)
+#define STX_COLOR(x, y)                                                        \
+    (Style) { .fg = (x), .bg = ST_INHERIT, .attr = (y) }
 
+#define CL_BASE 0x1a1b26
+#define CL_TEXT 0xc0caf5
 
-#define CL_BG 0x1a1b26
-#define CL_BG_DARK 0x16161e
-#define CL_BG_HIGHLIGHT 0x292e42
-#define CL_BLUE 0x7aa2f7
-#define CL_BLUE0 0x3d59a1
-#define CL_BLUE1 0x2ac3de
-#define CL_BLUE2 0x0db9d7
-#define CL_BLUE5 0x89ddff
-#define CL_BLUE6 0xb4f9f8
-#define CL_BLUE7 0x394b70
-#define CL_COMMENT 0x565f89
-#define CL_CYAN 0x7dcfff
-#define CL_DARK3 0x545c7e
-#define CL_DARK5 0x737aa2
-#define CL_FG 0xC0CAF5
-#define CL_FG_DARK 0xA9B1D6
-#define CL_FG_GUTTER 0x3b4261
-#define CL_GREEN 0x9ece6a
-#define CL_GREEN1 0x73daca
-#define CL_GREEN2 0x41a6b5
-#define CL_MAGENTA 0xBB9AF7
-#define CL_MAGENTA2 0xFF007C
-#define CL_ORANGE 0xFF9E64
-#define CL_PURPLE 0x9D7CD8
-#define CL_RED 0xF7768E
-#define CL_RED1 0xDB4B4B
-#define CL_TEAL 0x1ABC9C
-#define CL_TERMINAL_BLACK 0x414868
-#define CL_YELLOW 0xE0AF68
+#define CL_SURFACE 0x1f1d2e
+#define CL_OVERLAY 0x26233a
+#define CL_MUTED 0x6e6a86
+#define CL_SUBLTE 0x908caa
 
-#define CL_GIT_ADD 0x449DAB
-#define CL_GIT_CHANGE 0x6183BB
-#define CL_GIT_DELETE 0x914C54
-
-#define PRE_PROC CL_CYAN
-#define BOOLEAN 0xff9e64
-#define CHARACTER CL_GREEN
-#define SPECIAL 0xff9e64
-#define SPECIAL_CHARACTER SPECIAL
-#define CONSTANT 0xff9e64
-#define DEFINE PRE_PROC
-#define CONDITIONAL STATEMENT
-#define STATEMENT 0xbb9af7
-#define TYPE 0x2ac3de
+#define ST_NORMAL STX_COLOR(0xc0caf5, 0)
+#define ST_FUNCTION STX_COLOR(0x7aa2f7, 0)
+#define ST_FUNCTION_BUILTIN STX_COLOR(0x2ac3de, 0)
+#define ST_TYPE STX_COLOR(0x2ac3de, 0)
+#define ST_TYPE_BUILTIN STX_COLOR(0x27a1b9, 0)
+#define ST_KEYWORD STX_COLOR(0x9d7cd8, 0)
+#define ST_KEYWORD_CONTROL STX_COLOR(0xbb9af7, 0)
+#define ST_VARIABLE STX_COLOR(0xc0caf5, 0)
+#define ST_VARIABLE_PARAMETER STX_COLOR(0xe0af68, 0)
+#define ST_CONSTANT STX_COLOR(0xff9e64, 0)
+#define ST_CONSTANT_BUILTIN STX_COLOR(0x2ac3de, 0)
+#define ST_STRING STX_COLOR(0x9ece6a, 0)
+#define ST_COMMENT STX_COLOR(0x565f89, ITALIC)
+#define ST_NUMBER STX_COLOR(0xff9e64, 0)
+#define ST_OPERATOR STX_COLOR(0x89ddff, 0)
+#define ST_PUNCTUATION STX_COLOR(0xc0caf5, 0)
+#define ST_LABEL STX_COLOR(0x7aa2f7, 0)
 
 const TSLanguage *tree_sitter_c(void);
 
@@ -73,194 +45,32 @@ typedef enum {
 } direction;
 
 char *tree_sitter_options[] = {
-        "annotation",
-        "attribute",
-        "boolean",
-        "character",
-        "character.printf",
-        "character.special",
-        "comment",
-        "comment.error",
-        "comment.hint",
-        "comment.info",
-        "comment.note",
-        "comment.todo",
-        "comment.warning",
-        "constant",
-        "constant.builtin",
-        "constant.macro",
-        "constructor",
-        "constructor.tsx",
-        "diff.delta",
-        "diff.minus",
-        "diff.plus",
-        "function",
-        "function.builtin",
-        "function.call",
-        "function.macro",
-        "function.method",
-        "function.method.call",
-        "keyword",
-        "keyword.conditional",
-        "keyword.coroutine",
-        "keyword.debug",
-        "keyword.directive",
-        "keyword.directive.define",
-        "keyword.exception",
-        "keyword.function",
-        "keyword.import",
-        "keyword.operator",
-        "keyword.repeat",
-        "keyword.return",
-        "keyword.storage",
-        "label",
-        "markup",
-        "markup.emphasis",
-        "markup.environment",
-        "markup.environment.name",
-        "markup.heading",
-        "markup.italic",
-        "markup.link",
-        "markup.link.label",
-        "markup.link.label.symbol",
-        "markup.link.url",
-        "markup.list",
-        "markup.list.checked",
-        "markup.list.markdown",
-        "markup.list.unchecked",
-        "markup.math",
-        "markup.raw",
-        "markup.raw.markdown_inline",
-        "markup.strikethrough",
-        "markup.strong",
-        "markup.underline",
-        "module",
-        "module.builtin",
-        "namespace.builtin",
-        "none",
-        "number",
-        "number.float",
-        "operator",
-        "property",
-        "punctuation.bracket",
-        "punctuation.delimiter",
-        "punctuation.special",
-        "string",
-        "string.documentation",
-        "string.escape",
-        "string.regexp",
-        "tag",
-        "tag.attribute",
-        "tag.delimiter",
-        "tag.delimiter.tsx",
-        "tag.tsx",
-        "tag.javascript",
-        "type",
-        "type.builtin",
-        "type.definition",
-        "type.qualifier",
-        "variable",
-        "variable.builtin",
-        "variable.member",
-        "variable.parameter",
-        "variable.parameter.builtin",
-        NULL,
+        "function", "function.builtin", "type",        "type.builtin",
+        "keyword",  "keyword.control",  "variable",    "variable.parameter",
+        "constant", "constant.builtin", "string",      "comment",
+        "number",   "operator",         "punctuation", "label",
+        NULL, // Null-terminated array
 };
 
 
 typedef enum {
     HL_NORMAL = 0,
-    HL_ANNOTATION,
-    HL_ATTRIBUTE,
-    HL_BOOLEAN,
-    HL_CHARACTER,
-    HL_CHARACTER_PRINTF,
-    HL_CHARACTER_SPECIAL,
-    HL_COMMENT,
-    HL_COMMENT_ERROR,
-    HL_COMMENT_HINT,
-    HL_COMMENT_INFO,
-    HL_COMMENT_NOTE,
-    HL_COMMENT_TODO,
-    HL_COMMENT_WARNING,
-    HL_CONSTANT,
-    HL_CONSTANT_BUILTIN,
-    HL_CONSTANT_MACRO,
-    HL_CONSTRUCTOR,
-    HL_CONSTRUCTOR_TSX,
-    HL_DIFF_DELTA,
-    HL_DIFF_MINUS,
-    HL_DIFF_PLUS,
     HL_FUNCTION,
     HL_FUNCTION_BUILTIN,
-    HL_FUNCTION_CALL,
-    HL_FUNCTION_MACRO,
-    HL_FUNCTION_METHOD,
-    HL_FUNCTION_METHOD_CALL,
-    HL_KEYWORD,
-    HL_KEYWORD_CONDITIONAL,
-    HL_KEYWORD_COROUTINE,
-    HL_KEYWORD_DEBUG,
-    HL_KEYWORD_DIRECTIVE,
-    HL_KEYWORD_DIRECTIVE_DEFINE,
-    HL_KEYWORD_EXCEPTION,
-    HL_KEYWORD_FUNCTION,
-    HL_KEYWORD_IMPORT,
-    HL_KEYWORD_OPERATOR,
-    HL_KEYWORD_REPEAT,
-    HL_KEYWORD_RETURN,
-    HL_KEYWORD_STORAGE,
-    HL_LABEL,
-    HL_MARKUP,
-    HL_MARKUP_EMPHASIS,
-    HL_MARKUP_ENVIRONMENT,
-    HL_MARKUP_ENVIRONMENT_NAME,
-    HL_MARKUP_HEADING,
-    HL_MARKUP_ITALIC,
-    HL_MARKUP_LINK,
-    HL_MARKUP_LINK_LABEL,
-    HL_MARKUP_LINK_LABEL_SYMBOL,
-    HL_MARKUP_LINK_URL,
-    HL_MARKUP_LIST,
-    HL_MARKUP_LIST_CHECKED,
-    HL_MARKUP_LIST_MARKDOWN,
-    HL_MARKUP_LIST_UNCHECKED,
-    HL_MARKUP_MATH,
-    HL_MARKUP_RAW,
-    HL_MARKUP_RAW_MARKDOWN_INLINE,
-    HL_MARKUP_STRIKETHROUGH,
-    HL_MARKUP_STRONG,
-    HL_MARKUP_UNDERLINE,
-    HL_MODULE,
-    HL_MODULE_BUILTIN,
-    HL_NAMESPACE_BUILTIN,
-    HL_NONE,
-    HL_NUMBER,
-    HL_NUMBER_FLOAT,
-    HL_OPERATOR,
-    HL_PROPERTY,
-    HL_PUNCTUATION_BRACKET,
-    HL_PUNCTUATION_DELIMITER,
-    HL_PUNCTUATION_SPECIAL,
-    HL_STRING,
-    HL_STRING_DOCUMENTATION,
-    HL_STRING_ESCAPE,
-    HL_STRING_REGEXP,
-    HL_TAG,
-    HL_TAG_ATTRIBUTE,
-    HL_TAG_DELIMITER,
-    HL_TAG_DELIMITER_TSX,
-    HL_TAG_TSX,
-    HL_TAG_JAVASCRIPT,
     HL_TYPE,
     HL_TYPE_BUILTIN,
-    HL_TYPE_DEFINITION,
-    HL_TYPE_QUALIFIER,
+    HL_KEYWORD,
+    HL_KEYWORD_CONTROL,
     HL_VARIABLE,
-    HL_VARIABLE_BUILTIN,
-    HL_VARIABLE_MEMBER,
     HL_VARIABLE_PARAMETER,
-    HL_VARIABLE_PARAMETER_BUILTIN,
+    HL_CONSTANT,
+    HL_CONSTANT_BUILTIN,
+    HL_STRING,
+    HL_COMMENT,
+    HL_NUMBER,
+    HL_OPERATOR,
+    HL_PUNCTUATION,
+    HL_LABEL,
 } HighlightType;
 
 typedef struct {
@@ -271,6 +81,10 @@ typedef struct {
 
 struct editorConfig {
     int cx, cy;
+    int x_start_offset;
+    int x_end_offset;
+    int y_start_offset;
+    int y_end_offset;
     int row_offset;
     int col_offset;
     int screen_cols;
@@ -283,6 +97,7 @@ struct editorConfig {
     TSTree *tree;
     TSQuery *highlight_query;
     const TSLanguage *language;
+    bool needs_redraw;
 };
 
 struct editorConfig E;
@@ -293,42 +108,81 @@ void die(const char *s) {
 }
 
 void disableRawMode() {
-    tb_shutdown();
+    ts_tree_delete(E.tree);
+
+    terminal_end();
     perror("perror msg");
 }
 
 void enableRawMode() {
     setlocale(LC_ALL, "");
-    if (tb_init() != 0) {
-        die("tb_init");
+    if (terminal_init() != 0) {
+        die("terminal_init");
     }
     atexit(disableRawMode);
-    tb_set_output_mode(TB_OUTPUT_TRUECOLOR);
 }
 
 
 void editorDrawLines() {
-    for (int y = 0; y < E.screen_rows; y++) {
-        if (y + E.row_offset < E.num_rows) {
+    for (int y = 0; y < E.screen_rows - E.y_start_offset - E.y_end_offset;
+         y++) {
+        int filerow = y + E.row_offset;
+        if (filerow < E.num_rows) {
+            char ln[5];
+            int len_ln = 0;
+            len_ln += sprintf(ln, "%d", filerow);
+
             size_t len = E.row[y + E.row_offset].size - E.col_offset;
             if (len < 0)
                 len = 0;
-            if (len > E.screen_cols)
-                len = E.screen_cols;
+            if (len > E.screen_cols - E.x_start_offset - E.x_end_offset)
+                len = E.screen_cols - E.x_start_offset - E.x_end_offset;
 
-            for (int x = 0; x < E.screen_cols; x++) {
+            for (int x = 0;
+                 x < E.screen_cols - E.x_start_offset - E.x_end_offset; x++) {
                 int rx = x + E.col_offset;
-                tb_set_cell(x, y, x < len ? E.row[y + E.row_offset].chars[rx] : ' ', CL_FG, CL_BG);
+                terminal_cell_set(
+                        x + E.x_start_offset, y + E.y_start_offset,
+                        (struct Cell){
+                                .ch = x < len ? E.row[y + E.row_offset]
+                                                        .chars[rx]
+                                              : ' ',
+                                ST_NORMAL,
+                        });
             }
 
             continue;
         }
-        tb_print(0, y, TB_WHITE, TB_DEFAULT, "~");
+        terminal_cell_set(0, y + E.y_start_offset,
+                          (struct Cell){
+                                  .ch = '~',
+                                  (Style){
+                                          .fg = CL_TEXT,
+                                          .bg = CL_BASE,
+                                          .attr = 0,
+                                  },
+                          });
+    }
+}
+
+void debug() {
+    char buf[80];
+    int len = 0;
+
+    len += sprintf(buf, "E.cx: %d; E.cy: %d, coloff: %d, rowoff: %d        ",
+                   E.cx, E.cy, E.col_offset, E.row_offset);
+    for (int i = 0; i < len; i++) {
+        terminal_cell_set(i, E.screen_rows,
+                          (struct Cell){
+                                  .ch = buf[i],
+                                  .s = ST_NORMAL,
+                          });
     }
 }
 
 TSQuery *load_highlight_query() {
-    FILE *query_file = fopen("/home/silas/.config/LiteEdit/tree-sitter/c/highlights.scm", "r");
+    FILE *query_file = fopen(
+            "/home/silas/.config/LiteEdit/tree-sitter/c/highlights.scm", "r");
     if (!query_file) {
         perror("Failed to open highlights.scm");
         die("fopen");
@@ -351,11 +205,14 @@ TSQuery *load_highlight_query() {
 
     uint32_t error_offset;
     TSQueryError error_type;
-    TSQuery *query = ts_query_new(E.language, query_string, query_size, &error_offset, &error_type);
+    TSQuery *query = ts_query_new(E.language, query_string, query_size,
+                                  &error_offset, &error_type);
 
     free(query_string);
     if (!query) {
-        fprintf(stderr, "Failed to create query: error at offset %u, error type %d\n", error_offset, error_type);
+        fprintf(stderr,
+                "Failed to create query: error at offset %u, error type %d\n",
+                error_offset, error_type);
         return NULL;
     }
 
@@ -401,175 +258,44 @@ HighlightType get_highlight_type(const char *capture_name, uint32_t len) {
     return HL_NORMAL;
 }
 
-uint64_t get_color(HighlightType type) {
+Style get_style(HighlightType type) {
     switch (type) {
         case HL_NORMAL:
-            return CL_FG;
-        case HL_ANNOTATION:
-            return PRE_PROC;
-        case HL_ATTRIBUTE:
-            return PRE_PROC;
-        case HL_BOOLEAN:
-            return BOOLEAN;
-        case HL_CHARACTER:
-            return CHARACTER;
-        case HL_CHARACTER_PRINTF:
-            return SPECIAL_CHARACTER;
-        case HL_CHARACTER_SPECIAL:
-            return SPECIAL_CHARACTER;
-        case HL_COMMENT:
-            return CL_COMMENT;
-        case HL_COMMENT_ERROR:
-            return CL_RED1;
-        case HL_COMMENT_HINT:
-            return CL_TEAL;
-        case HL_COMMENT_INFO:
-            return CL_BLUE2;
-        case HL_COMMENT_NOTE:
-            return CL_TEAL;
-        case HL_COMMENT_TODO:
-            return CL_BLUE;
-        case HL_COMMENT_WARNING:
-            return CL_YELLOW;
-        case HL_CONSTANT:
-            return CONSTANT;
-        case HL_CONSTANT_BUILTIN:
-            return SPECIAL;
-        case HL_CONSTANT_MACRO:
-            return DEFINE;
-        case HL_CONSTRUCTOR:
-            return CL_MAGENTA;
-        case HL_CONSTRUCTOR_TSX:
-            return CL_BLUE1;
-        case HL_DIFF_DELTA:
-            return CL_BLUE7;
-        case HL_DIFF_MINUS:
-            return CL_RED1;
-        case HL_DIFF_PLUS:
-            return CL_GREEN2;
+            return ST_NORMAL;
         case HL_FUNCTION:
-            return CL_BLUE;
+            return ST_FUNCTION;
         case HL_FUNCTION_BUILTIN:
-            return SPECIAL;
-        case HL_FUNCTION_CALL:
-            return CL_BLUE;
-        case HL_FUNCTION_MACRO:
-            return PRE_PROC;
-        case HL_FUNCTION_METHOD:
-            return CL_BLUE;
-        case HL_FUNCTION_METHOD_CALL:
-            return CL_BLUE;
-        case HL_KEYWORD:
-            return CL_PURPLE;
-        case HL_KEYWORD_CONDITIONAL:
-            return CONDITIONAL;
-        case HL_KEYWORD_COROUTINE:
-            return CL_PURPLE;
-        case HL_KEYWORD_DEBUG:
-            return CL_ORANGE;
-        case HL_KEYWORD_DIRECTIVE:
-            return PRE_PROC;
-        case HL_KEYWORD_DIRECTIVE_DEFINE:
-            return DEFINE;
-        case HL_KEYWORD_EXCEPTION:
-            return STATEMENT;
-        case HL_KEYWORD_FUNCTION:
-            return CL_MAGENTA;
-        case HL_KEYWORD_IMPORT:
-            return PRE_PROC;
-        case HL_KEYWORD_OPERATOR:
-            return CL_BLUE5;
-        case HL_KEYWORD_REPEAT:
-            return STATEMENT;
-        case HL_KEYWORD_RETURN:
-            return CL_PURPLE;
-        case HL_KEYWORD_STORAGE:
-            return TYPE;
-        case HL_LABEL:
-            return CL_BLUE;
-        case HL_MARKUP:
-        case HL_MARKUP_EMPHASIS:
-        case HL_MARKUP_ENVIRONMENT:
-        case HL_MARKUP_ENVIRONMENT_NAME:
-        case HL_MARKUP_HEADING:
-        case HL_MARKUP_ITALIC:
-        case HL_MARKUP_LINK:
-        case HL_MARKUP_LINK_LABEL:
-        case HL_MARKUP_LINK_LABEL_SYMBOL:
-        case HL_MARKUP_LINK_URL:
-        case HL_MARKUP_LIST:
-        case HL_MARKUP_LIST_CHECKED:
-        case HL_MARKUP_LIST_MARKDOWN:
-        case HL_MARKUP_LIST_UNCHECKED:
-        case HL_MARKUP_MATH:
-        case HL_MARKUP_RAW:
-        case HL_MARKUP_RAW_MARKDOWN_INLINE:
-        case HL_MARKUP_STRIKETHROUGH:
-        case HL_MARKUP_STRONG:
-        case HL_MARKUP_UNDERLINE:
-            return CL_FG;
-        case HL_MODULE:
-            return PRE_PROC;
-        case HL_MODULE_BUILTIN:
-            return CL_RED;
-        case HL_NAMESPACE_BUILTIN:
-            return CL_RED;
-        case HL_NONE:
-            return CL_FG;
-        case HL_NUMBER:
-            return CONSTANT;
-        case HL_NUMBER_FLOAT:
-            return CONSTANT;
-        case HL_OPERATOR:
-            return CL_BLUE5;
-        case HL_PROPERTY:
-            return CL_GREEN1;
-        case HL_PUNCTUATION_BRACKET:
-            return CL_FG_DARK;
-        case HL_PUNCTUATION_DELIMITER:
-            return CL_BLUE5;
-        case HL_PUNCTUATION_SPECIAL:
-            return CL_BLUE5;
-        case HL_STRING:
-            return CL_GREEN;
-        case HL_STRING_DOCUMENTATION:
-            return CL_YELLOW;
-        case HL_STRING_ESCAPE:
-            return CL_MAGENTA;
-        case HL_STRING_REGEXP:
-            return CL_BLUE6;
-        case HL_TAG:
-            return STATEMENT;
-        case HL_TAG_ATTRIBUTE:
-            return CL_GREEN1;
-        case HL_TAG_DELIMITER:
-            return SPECIAL;
-        case HL_TAG_DELIMITER_TSX:
-            return CL_BLUE;
-        case HL_TAG_TSX:
-            return CL_RED;
-        case HL_TAG_JAVASCRIPT:
-            return CL_RED;
+            return ST_FUNCTION_BUILTIN;
         case HL_TYPE:
-            return TYPE;
+            return ST_TYPE;
         case HL_TYPE_BUILTIN:
-            return CL_RED;
-        case HL_TYPE_DEFINITION:
-            return TYPE;
-        case HL_TYPE_QUALIFIER:
-            return CL_PURPLE;
+            return ST_TYPE_BUILTIN;
+        case HL_KEYWORD:
+            return ST_KEYWORD;
+        case HL_KEYWORD_CONTROL:
+            return ST_KEYWORD_CONTROL;
         case HL_VARIABLE:
-            return CL_FG;
-        case HL_VARIABLE_BUILTIN:
-            return CL_RED;
-        case HL_VARIABLE_MEMBER:
-            return CL_GREEN1;
+            return ST_VARIABLE;
         case HL_VARIABLE_PARAMETER:
-            return CL_YELLOW;
-        case HL_VARIABLE_PARAMETER_BUILTIN:
-            return CL_YELLOW;
+            return ST_VARIABLE_PARAMETER;
+        case HL_CONSTANT:
+            return ST_CONSTANT;
+        case HL_CONSTANT_BUILTIN:
+            return ST_CONSTANT_BUILTIN;
+        case HL_STRING:
+            return ST_STRING;
+        case HL_COMMENT:
+            return ST_COMMENT;
+        case HL_NUMBER:
+            return ST_NUMBER;
+        case HL_OPERATOR:
+            return ST_OPERATOR;
+        case HL_PUNCTUATION:
+            return ST_PUNCTUATION;
+        case HL_LABEL:
+            return ST_LABEL;
         default:
-            return CL_FG;
+            return ST_NORMAL;
     }
 }
 
@@ -591,21 +317,30 @@ void apply_highlight(TSNode node, HighlightType hl_type) {
             break;
 
         // Adjust start and end columns for horizontal scrolling
-        uint32_t col_start = (file_row == start_point.row) ? start_point.column - E.col_offset : 0;
-        uint32_t col_end =
-                (file_row == end_point.row) ? end_point.column - E.col_offset : E.row[file_row].size - E.col_offset;
+        uint32_t col_start = (file_row == start_point.row)
+                                     ? start_point.column - E.col_offset
+                                     : 0;
+        uint32_t col_end = (file_row == end_point.row)
+                                   ? end_point.column - E.col_offset
+                                   : E.row[file_row].size - E.col_offset;
 
         // Ensure columns are within screen bounds
         col_start = (col_start < 0) ? 0 : col_start;
         col_end = (col_end > E.screen_cols) ? E.screen_cols : col_end;
 
-        for (uint32_t screen_col = col_start; screen_col < col_end; screen_col++) {
+        for (uint32_t screen_col = col_start; screen_col < col_end;
+             screen_col++) {
             uint32_t file_col = screen_col + E.col_offset;
             if (file_col >= E.row[file_row].size)
                 break;
 
             char current_char = E.row[file_row].chars[file_col];
-            tb_set_cell(screen_col, screen_row, current_char, get_color(hl_type), CL_BG);
+
+            terminal_cell_set(screen_col, screen_row,
+                              (struct Cell){
+                                      .ch = current_char,
+                                      .s = get_style(hl_type),
+                              });
         }
     }
 }
@@ -623,7 +358,8 @@ void editorHighlightSyntax() {
         for (uint16_t i = 0; i < match.capture_count; i++) {
             TSQueryCapture capture = match.captures[i];
             uint32_t len;
-            const char *capture_name = ts_query_capture_name_for_id(E.highlight_query, capture.index, &len);
+            const char *capture_name = ts_query_capture_name_for_id(
+                    E.highlight_query, capture.index, &len);
             HighlightType hl_type = get_highlight_type(capture_name, len);
             apply_highlight(capture.node, hl_type);
         }
@@ -635,99 +371,68 @@ void editorHighlightSyntax() {
 
 
 void editorMoveCursor(direction dir, int value) {
-    erow *row = (E.cy >= E.num_rows) ? NULL : &E.row[E.cy];
     switch (dir) {
         case HORIZONTAL:
-            if (E.cx > 0) {
-                if (row && E.cx < row->size)
-                    E.cx += value;
-            } else {
-                E.cx += value;
-            }
+            E.cx += value;
             break;
         case VERTICAL:
             E.cy += value;
-            E.cy = clamp(E.cy, 0, E.num_rows - 1);
             break;
-    }
-
-    row = (E.cy >= E.num_rows) ? NULL : &E.row[E.cy];
-    int rowlen = row ? row->size : 0;
-    if (E.cx > rowlen) {
-        E.cx = rowlen;
     }
 }
 
 void editorScroll() {
-    if (E.cy < E.row_offset) {
-        E.row_offset = E.cy;
+    if (E.cy < 1) {
+        E.cy = 1;
     }
-    if (E.cy >= E.row_offset + E.screen_rows) {
-        E.row_offset = E.cy - E.screen_rows + 1;
+    if (E.cy > E.num_rows) {
+        E.cy = E.num_rows;
     }
-
-    if (E.cx < E.col_offset) {
-        E.col_offset = E.cx;
+    if (E.cy - E.row_offset > E.screen_rows) {
+        E.row_offset += E.cy - E.row_offset - E.screen_rows;
     }
-    if (E.cx >= E.col_offset + E.screen_cols) {
-        E.col_offset = E.cx - E.screen_cols + 1;
+    if (E.cy - E.row_offset < 1) {
+        E.row_offset += E.cy - E.row_offset - 1;
     }
 }
 
 void editorRefreshScreen() {
     editorScroll();
-    tb_clear();
-    // editorDrawLines();
-    editorHighlightSyntax();
-    tb_present();
-    tb_set_cursor(E.cx, E.cy);
+    terminal_move_cursor(E.cx - E.col_offset, E.cy - E.row_offset);
+    debug();
+    editorDrawLines();
+    // editorHighlightSyntax();
+    terminal_refresh();
+    E.needs_redraw = false;
 }
 
+void editorReadEvent() {
+    int c = terminal_read_input();
 
-void editorProcessKeypress(uint16_t key, uint32_t ch) {
-    switch (ch) {
+    switch (c) {
         case 'q':
             exit(0);
         case 'h':
             editorMoveCursor(HORIZONTAL, -1);
-            return;
+            break;
         case 'j':
             editorMoveCursor(VERTICAL, 1);
-            return;
+            break;
         case 'k':
             editorMoveCursor(VERTICAL, -1);
-            return;
+            break;
         case 'l':
             editorMoveCursor(HORIZONTAL, 1);
-            return;
-        default:;
-    }
-
-    switch (key) {
+            break;
         case ctrl('u'):
-        case TB_KEY_PGUP:
             editorMoveCursor(VERTICAL, -34);
             break;
         case ctrl('d'):
-        case TB_KEY_PGDN:
             editorMoveCursor(VERTICAL, 34);
             break;
-        default:;
     }
 }
 
-void editorReadEvent() {
-    struct tb_event event;
-    tb_peek_event(&event, 10);
-
-
-    switch (event.type) {
-        case TB_EVENT_RESIZE:
-        case TB_EVENT_MOUSE:
-        case TB_EVENT_KEY:
-            editorProcessKeypress(event.key, event.ch);
-    }
-}
 
 void editorAppenRow(char *line, size_t len) {
     E.row = realloc(E.row, sizeof(erow) * (E.num_rows + 1));
@@ -767,7 +472,8 @@ void editorOpen(const char *filename) {
     char *line = NULL;
 
     while ((linelen = getline(&line, &len, fp)) != -1) {
-        while (linelen > 0 && (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
+        while (linelen > 0 &&
+               (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
             linelen--;
         editorAppenRow(line, linelen);
     }
@@ -788,17 +494,27 @@ void init_tree_sitter() {
     E.highlight_query = load_highlight_query();
 }
 
-void update_syntax_tree() { E.tree = ts_parser_parse_string(E.parser, E.tree, E.text, E.len_text); }
+void update_syntax_tree() {
+    E.tree = ts_parser_parse_string(E.parser, E.tree, E.text, E.len_text);
+}
 
 
 void initEditor() {
-    E.screen_cols = tb_width();
-    E.screen_rows = tb_height();
-    E.cx = 0;
-    E.cy = 0;
+    terminal_get_size(&E.screen_cols, &E.screen_rows);
+    E.cx = 1;
+    E.cy = 1;
+
+    E.x_start_offset = 5;
+    E.x_end_offset = 5;
+    E.y_start_offset = 5;
+    E.y_end_offset = 5;
+
     E.num_rows = 0;
     E.row_offset = 0;
     E.col_offset = 0;
+    E.needs_redraw = true;
+
+    E.screen_rows -= 1;
 
     E.row = NULL;
 }

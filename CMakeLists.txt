@@ -10,7 +10,6 @@ set(TB_OPT_ATTR_W "64")
 
 # Include directories
 include_directories(${CMAKE_SOURCE_DIR}/include)
-include_directories(${CMAKE_SOURCE_DIR}/vendor/termbox2)
 include_directories(${CMAKE_SOURCE_DIR}/vendor/tree-sitter/lib/src)
 include_directories(${CMAKE_SOURCE_DIR}/vendor/tree-sitter/lib/include)
 
@@ -19,7 +18,9 @@ set(TREE_SITTER_SOURCES ${CMAKE_SOURCE_DIR}/vendor/tree-sitter/lib/src/lib.c
                         ${CMAKE_SOURCE_DIR}/vendor/tree-sitter-c/src/parser.c)
 
 # Add your project source files
-set(SOURCES ${CMAKE_SOURCE_DIR}/src/main.c)
+set(SOURCES 
+    ${CMAKE_SOURCE_DIR}/src/main.c
+    ${CMAKE_SOURCE_DIR}/src/terminal.c)
 
 # Add executable target
 add_executable(${PROJECT_NAME} ${SOURCES} ${TREE_SITTER_SOURCES})
